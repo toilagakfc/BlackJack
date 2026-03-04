@@ -1,10 +1,10 @@
 # presentation/sockets/handler/room_handler.py
-
 from application.room_service import RoomService
 from presentation.sockets.server import sio
 
 @sio.event
 async def create_room(sid, data):
+    print(f"Creating room for dealer SID: {sid}, name: {data['name']}")
     room = RoomService.create_room(dealer_sid=sid)
 
     await sio.emit(

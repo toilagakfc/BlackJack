@@ -12,8 +12,9 @@ class RoomService:
     @staticmethod
     def create_room(dealer_sid: str):
         room_id = uuid.uuid4().hex[:6].upper()
-        room = Room(room_id=room_id, dealer_id=dealer_sid)
-
+        print(f"Creating room with ID: {room_id} for dealer SID: {dealer_sid}")
+        room = Room(room_id=room_id, dealer=dealer_sid)
+        print(f"Room created: {room.id}")
         room_repo.save(room)
         return room
 

@@ -1,5 +1,5 @@
 
-from game_server.domain.repositories.room_repo import RoomRepository
+from domain.repositories.room_repo import RoomRepository
 
 
 class InMemoryRoomRepository(RoomRepository):
@@ -9,7 +9,7 @@ class InMemoryRoomRepository(RoomRepository):
 
     def save(self, room):
         self.rooms[room.id] = room
-        self.dealer_room_map[room.dealer.sid] = room.id
+        self.dealer_room_map[room.dealer] = room.id
 
     def get(self, room_id):
         return self.rooms.get(room_id)
@@ -17,7 +17,7 @@ class InMemoryRoomRepository(RoomRepository):
     def remove(self, room_id):
         room = self.rooms.pop(room_id, None)
         if room:
-            self.dealer_room_map.pop(room.dealer.sid, None)
+            self.dealer_room_map.pop(room.dealer, None)
 
     def get_by_dealer_sid(self, sid):
         room_id = self.dealer_room_map.get(sid)

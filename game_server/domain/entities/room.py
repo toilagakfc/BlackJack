@@ -7,7 +7,7 @@ class Room:
         self.id = room_id
         self.dealer = dealer
         self.players = {}
-        self.game = Game()
+        self.game = None
         self.phase = "waiting"
         self.created_at = None
         self.updated_at = None

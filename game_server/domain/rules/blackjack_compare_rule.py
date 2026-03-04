@@ -1,5 +1,5 @@
 
-from game_server.domain.rules.blackjack_rule import XiDachHandRule
+from domain.rules.blackjack_rule import XiDachHandRule
 
 class XiDachCompareRule:
     @staticmethod
