@@ -1,5 +1,6 @@
 import uuid
 from domain.entities.player import Player
+from domain.entities.dealer import Dealer
 from domain.entities.Game import Game
 import datetime
 class Room:
@@ -15,20 +16,21 @@ class Room:
         self.ended_at = None
 
     @staticmethod
-    def create(dealer_sid: str, name: str):
+    def create(dealer: Dealer):
         room_id = uuid.uuid4().hex[:6].upper()
-        dealer = Player(dealer_sid, name, is_dealer=True, ready=True)
         return Room(room_id, dealer)
     
     def add_player(self, player: Player):
-        if player.sid in self.players:
+        if player.id in self.players:
             raise ValueError("Player already in room")
-        self.players[player.sid] = player
+        self.players[player.id] = player
+        print(f"Players: {self.players}")
     
     def remove_player(self, sid: str):
-        if sid not in self.players:
+        if sid not in self.players.keys():
             raise ValueError("Player not in room")
         del self.players[sid]
+        print(f"Players: {list(self.players.keys())}")
         
     def all_ready(self):
         return all(p.ready for p in self.players.values()) 

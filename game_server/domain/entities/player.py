@@ -2,12 +2,14 @@ from domain.value_objects.hand import Hand
 
 
 class Player:
-    def __init__(self, player_id: str, name: str):
+    def __init__(self, player_id: str, name: str, ready: bool = False, is_dealer: bool = False):
         self.id = player_id
         self.name = name
         self.hand = Hand()
         self.standing = False
         self.busted = False
+        self.ready = ready
+        self.is_dealer = is_dealer
 
     def reset(self):
         self.hand.reset()
