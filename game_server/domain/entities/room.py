@@ -21,22 +21,21 @@ class Room:
         return Room(room_id, dealer)
     
     def add_player(self, player: Player):
-        if player.id in self.players:
+        if player.id in self.players.keys() or player.id == self.dealer.id:
             raise ValueError("Player already in room")
         self.players[player.id] = player
-        print(f"Players: {self.players}")
     
     def remove_player(self, sid: str):
         if sid not in self.players.keys():
             raise ValueError("Player not in room")
         del self.players[sid]
-        print(f"Players: {list(self.players.keys())}")
+        print(self.players)
         
     def all_ready(self):
         return all(p.ready for p in self.players.values()) 
     
     def has_players(self):
-        return len(self.players) > 1
+        return len(self.players) > 0
     
     def reset(self):
         for p in self.players.values():
@@ -47,14 +46,10 @@ class Room:
     def start_game(self):
         if self.game:
             raise ValueError("Game already started")
-        
-        if not self.all_ready():
-            raise ValueError("Not all players are ready")
-        dealer = self.players[self.dealer.sid]
-        players = [p for p in self.players.values() if p.sid != self.dealer.sid]
-        self.game = Game(dealer=dealer, players=players)
+        self.game = Game(dealer=self.dealer, players=list(self.players.values()))
         self.phase = "playing"
         self.started_at = datetime.datetime.now()
+        print(f"Game started in room {self.id} at {self.started_at}")
         self.game.initial_deal()
         self.game.init_turn()
         self.updated_at = datetime.datetime.now()

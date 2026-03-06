@@ -9,14 +9,25 @@ async def start_game(sid, data):
     """
     data = { room_id }
     """
-    room = RoomService.start_game(data["room_id"], sid)
+    try:
+        room = RoomService.start_game(data["room_id"], sid)
 
-    await sio.emit(
-        "game_started",
-        room.game.public_state(hide_dealer_cards=True),
-        room=room.id,
-    )
-    
+        await sio.emit(
+            "game_started",
+            room.game.public_state(hide_dealer_cards=True),
+            room=room.id,
+        )
+        await sio.emit(
+            "player_turn",
+            {"player_id": room.game.current_player().id},
+            room=room.id,
+        )
+    except ValueError as e:
+        await sio.emit(
+            "error",
+            {"code": str(e)},
+            room=sid,
+        )
         
 @sio.event
 async def end_game(sid, data): 
