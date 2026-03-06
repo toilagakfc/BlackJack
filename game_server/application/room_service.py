@@ -96,15 +96,17 @@ class RoomService:
     @staticmethod
     def start_game(room_id: str, sid: str):
         room = room_repo.get(room_id)
-        if sid != room.dealer.id:
-            raise ValueError("ONLY_DEALER_CAN_START_GAME")
         if not room:
             raise ValueError("ROOM_NOT_FOUND")
+        if sid != room.dealer.id:
+            raise ValueError("ONLY_DEALER_CAN_START_GAME")
         if not room.has_players():
             raise ValueError("NOT_ENOUGH_PLAYERS")
         if not room.all_ready() :
             raise ValueError("NOT_ALL_PLAYERS_READY")
+        print(f"phase: {room.phase}")
         room.start_game()
+        print(f"phase after start game: {room.phase}")
         room_repo.save(room)
 
         return room
