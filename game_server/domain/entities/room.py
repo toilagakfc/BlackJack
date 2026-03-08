@@ -1,7 +1,7 @@
 import uuid
 from domain.entities.player import Player
 from domain.entities.dealer import Dealer
-from domain.entities.Game import Game
+from domain.entities.game import Game
 import datetime
 class Room:
     def __init__(self, room_id: str, dealer: Player):
@@ -29,7 +29,6 @@ class Room:
         if sid not in self.players.keys():
             raise ValueError("Player not in room")
         del self.players[sid]
-        print(self.players)
         
     def all_ready(self):
         return all(p.ready for p in self.players.values()) 

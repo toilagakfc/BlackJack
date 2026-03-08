@@ -1,6 +1,5 @@
-
+#game_server/infrastructure/repositories/room_repo_memory.py
 from domain.repositories.room_repo import RoomRepository
-
 
 class InMemoryRoomRepository(RoomRepository):
     def __init__(self):
@@ -19,15 +18,11 @@ class InMemoryRoomRepository(RoomRepository):
 
     def remove(self, room_id):
         room = self.rooms.pop(room_id, None)
-        if room:
-            self.dealer_room_map.pop(room.dealer.id, None)
-            self.player_room_map = {pid: rid for pid, rid in self.player_room_map.items() if rid != room_id}
-            
-
-    def remove_player_from_room(self, room_id, player_id):
-        print(f"Removing player {player_id} from room {room_id}")
-        if player_id in self.player_room_map.keys():
-            self.player_room_map.pop(player_id, None)
+        if not room:
+            return
+        
+        self.dealer_room_map.pop(room.dealer.id, None)
+        self.player_room_map = {pid: rid for pid, rid in self.player_room_map.items() if rid != room_id}
 
             
     def get_by_dealer_sid(self, sid):

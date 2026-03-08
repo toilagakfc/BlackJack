@@ -8,7 +8,6 @@ from infrastructure.repositories.room_repo_memory import InMemoryRoomRepository
 
 room_repo = InMemoryRoomRepository()
 
-
 class RoomService:
 
     def __init__(self):
@@ -60,7 +59,6 @@ class RoomService:
             room.dealer = None
         if sid in room.players.keys():
             room.remove_player(sid)
-            room_repo.remove_player_from_room(room_id, sid)
             room_repo.save(room)
         print(f"room repo player map after player leaves: {room_repo.player_room_map}")
         print(f"room after player leaves: {room.players}")
@@ -79,7 +77,6 @@ class RoomService:
             raise ValueError("ONLY_DEALER_CAN_KICK_PLAYERS")
         room.remove_player(target_sid)
         room_repo.save(room)
-        
         return room    
     
     @staticmethod
@@ -92,44 +89,6 @@ class RoomService:
     @staticmethod
     def get_room(room_id: str):
         return room_repo.get(room_id)
-    
-    @staticmethod
-    def start_game(room_id: str, sid: str):
-        room = room_repo.get(room_id)
-        if not room:
-            raise ValueError("ROOM_NOT_FOUND")
-        if sid != room.dealer.id:
-            raise ValueError("ONLY_DEALER_CAN_START_GAME")
-        if not room.has_players():
-            raise ValueError("NOT_ENOUGH_PLAYERS")
-        if not room.all_ready() :
-            raise ValueError("NOT_ALL_PLAYERS_READY")
-        room.start_game()
-        room_repo.save(room)
-
-        return room
-    
-    @staticmethod
-    def end_game(room_id: str):
-        room = room_repo.get(room_id)
-        if not room:
-            raise ValueError("ROOM_NOT_FOUND")
-
-        room.end_game()
-        room_repo.save(room)
-
-        return room
-    
-    @staticmethod
-    def reset_game(room_id: str):
-        room = room_repo.get(room_id)
-        if not room:
-            raise ValueError("ROOM_NOT_FOUND")
-
-        room.reset_game()
-        room_repo.save(room)
-
-        return room
     
     @staticmethod
     def ready(room_id: str, sid: str):
@@ -155,6 +114,8 @@ class RoomService:
         player = room.players[sid]
         if not player.ready:
             raise ValueError("PLAYER_ALREADY_UNREADY")
+        if room.game.phase !="waiting":
+            raise ValueError("GAME_RUNNING")
         player.ready = False
         room_repo.save(room)
         return room
