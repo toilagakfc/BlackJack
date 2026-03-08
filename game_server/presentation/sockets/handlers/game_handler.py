@@ -1,6 +1,7 @@
 # game_server/presentation/sockets/handlers/game_handler.py
 from presentation.sockets.server import sio
 from application.room_service import RoomService
+from application.game_service import GameService
 from infrastructure.repositories.room_repo_memory import InMemoryRoomRepository
 
 
@@ -11,12 +12,11 @@ async def start_game(sid, data):
     """
     try:
         room = RoomService.start_game(data["room_id"], sid)
-        
-        # await sio.emit(
-        #     "game_started",
-        #     room.game.public_state(hide_dealer_cards=True),
-        #     room=room.id,
-        # )
+        await sio.emit(
+            "game_started",
+            room.game.public_state(),
+            room=room.id,
+        )
         await sio.emit(
             "player_turn",
             {"player_id": room.game.current_player().id},
@@ -71,32 +71,24 @@ async def reset_game(sid, data):
             {"code": str(e)},
             room=sid,
         )
-        
+
 @sio.event
 async def player_action(sid, data):
     """
     data = { room_id, action }
     action = "hit" | "stand"
     """
-    room = RoomService.get_room(data["room_id"])
-    if not room or not room.game:
-        await sio.emit(
-            "error",
-            {"code": "GAME_NOT_FOUND"},
-            room=sid,
-        )
-        return
-
     try:
+        room = RoomService.get_room(data["room_id"])
+        game = GameService(room.id)
         if data["action"] == "hit":
-            room.game.player_hit(sid)
+            game.player_hit(sid)
         elif data["action"] == "stand":
-            room.game.player_stand(sid)
+            game.player_stand(sid)
         else:
             raise ValueError("INVALID_ACTION")
 
-        RoomService.start_game(room.id, room.game)
-
+        print(room.game.public_state())
         await sio.emit(
             "game_updated",
             room.game.public_state(hide_dealer_cards=True),
@@ -111,19 +103,36 @@ async def player_action(sid, data):
         )
 
 @sio.event
-async def dealer_compare(sid, data):
+async def dealer_action(sid, data):
     """
     data = { room_id, target_sid }
     """
-    room = RoomService.get_room(data["room_id"])
+    try:
+        room = RoomService.get_room(data["room_id"])
+        game = GameService(room.id)
+        if data["action"] == "hit":
+            game.dealer_hit(sid)
+        elif data["action"] == "compare":
+            result = game.dealer_compare(sid,data["target_sid"])
+            await sio.emit(
+                "compare_result",
+                {"result":result},
+                room=room.id,
+            )
+        else:
+            raise ValueError("INVALID_ACTION")
 
-    if sid != room.dealer_id:
-        raise ValueError("NOT_DEALER")
+        print(room.game.public_state())
+        await sio.emit(
+            "game_updated",
+            room.game.public_state(hide_dealer_cards=True),
+            room=room.id,
+        )
 
-    result = room.game.dealer_compare(data["target_sid"])
-
-    await sio.emit(
-        "compare_result",
-        result,
-        room=room.id,
-    )
+    except ValueError as e:
+        await sio.emit(
+            "error",
+            {"code": str(e)},
+            room=sid,
+        )
+    

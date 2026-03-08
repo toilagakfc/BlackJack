@@ -1,3 +1,4 @@
+from domain.value_objects.card import Card
 class Hand:
     def __init__(self):
         self._cards = []
@@ -5,7 +6,7 @@ class Hand:
     def reset(self):
         self._cards.clear()
 
-    def add(self, card):
+    def add(self, card:Card):
         self._cards.append(card)
 
     def cards(self):
@@ -16,3 +17,4 @@ class Hand:
 
     def __repr__(self):
         return f"Hand({self._cards})"
+    

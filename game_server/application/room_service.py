@@ -104,9 +104,7 @@ class RoomService:
             raise ValueError("NOT_ENOUGH_PLAYERS")
         if not room.all_ready() :
             raise ValueError("NOT_ALL_PLAYERS_READY")
-        print(f"phase: {room.phase}")
         room.start_game()
-        print(f"phase after start game: {room.phase}")
         room_repo.save(room)
 
         return room

@@ -1,13 +1,17 @@
 """In-memory repository adapter (thin)"""
-from ...server import room_manager
+from domain.repositories.game_repo import GameRepository
 
+class InMemoryGameRepository(GameRepository):
+    def __init__(self):
+        self.rooms = {}
+        self.dealer_room_map = {}
+        self.player_room_map = {}
+    def save(self, game):
+        pass
 
-def list_rooms():
-    return [
-        {
-            "room_id": rid,
-            "dealer": r.players[r.dealer_sid].name,
-            "player_count": r.player_count(),
-        }
-        for rid, r in room_manager.rooms.items()
-    ]
+    def get(self, room_id):
+        pass
+
+    def remove(self, room_id):
+        pass
+  

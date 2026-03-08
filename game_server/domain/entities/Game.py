@@ -3,12 +3,13 @@ from domain.value_objects.deck import Deck
 from domain.entities.player import Player
 from domain.entities.dealer import Dealer
 from domain.rules.blackjack_compare_rule import XiDachHandRule, XiDachCompareRule
-
+from presentation.serializers.card_serializer import serialize_hand
 
 class Game:
     def __init__(self, dealer: Dealer,players: list[Player]):
         self.deck = Deck()
         self.xidach_rule = XiDachHandRule()
+        self.xidach_compare_rule = XiDachCompareRule()
         self.players = players            # list[Player]
         self.dealer = dealer
 
@@ -23,7 +24,10 @@ class Game:
         for _ in range(2):
             for p in self.players:
                 self._draw_for(p)
+                print(f"Player {p.name} Hand on: {p.hand.cards()}")
             self._draw_for(self.dealer)
+            print(f"Dealer Hand on: {self.dealer.hand.cards()}")
+        
 
     def init_turn(self):
         self.turn_index = 0
@@ -40,11 +44,12 @@ class Game:
 
     # ---------- player actions ----------
 
-    def player_hit(self, player: Player):
+    def player_hit(self, player_id):
+        player = self.get_player_by_id(player_id)
         if self.phase != "PLAYER_TURN":
             raise ValueError("NOT_PLAYER_PHASE")
 
-        if player is not self.current_player():
+        if player_id is not self.current_player().id:
             raise ValueError("NOT_YOUR_TURN")
 
         if not self.xidach_rule.can_draw(player.hand):
@@ -55,7 +60,14 @@ class Game:
         if (self.xidach_rule.is_bust(player.hand) or self.xidach_rule.is_ngu_linh(player.hand)):
             self.next_player()
 
-    def player_stand(self, player: Player):
+    def player_stand(self, player_id):
+        player = self.get_player_by_id(player_id)
+        if self.phase != "PLAYER_TURN":
+            raise ValueError("NOT_PLAYER_PHASE")
+
+        if player_id is not self.current_player().id:
+            raise ValueError("NOT_YOUR_TURN")
+        
         if not self.xidach_rule.can_stand(player.hand):
             raise ValueError("CANNOT_STAND")
 
@@ -64,18 +76,23 @@ class Game:
 
     # ---------- dealer actions ----------
 
-    def dealer_hit(self):
+    def dealer_hit(self,dealer_id):
+        if self.dealer.id != dealer_id:
+            raise ValueError("NOT_DEALER")
         if self.phase != "DEALER_TURN":
             raise ValueError("NOT_DEALER_PHASE")
 
         if self.xidach_rule.dealer_should_draw(self.dealer.hand):
             self._draw_for(self.dealer)
 
-    def dealer_compare(self, player: Player):
+    def dealer_compare(self, dealer_id,player_id):
+        if self.dealer.id != dealer_id:
+            raise ValueError("NOT_DEALER")
+        player = self.get_player_by_id(player_id)
         if player in self.compared_players:
             raise ValueError("ALREADY_COMPARED")
 
-        result = self.xidach_rule.compare(
+        result = self.xidach_compare_rule.compare(
             player.hand,
             self.dealer.hand
         )
@@ -115,17 +132,19 @@ class Game:
                 {
                     "id": p.id,
                     "name": p.name,
-                    "cards": [c.serialize() for c in p.hand.cards()],
+                    # "cards": p.hand.cards(),
                     "point": self.xidach_rule.calc_point(p.hand),
+                    "index":i
                 }
-                for p in self.players
+                for i,p in enumerate(self.players)
             ],
             "dealer": {
-                "cards": (
-                    [c.serialize() for c in self.dealer.hand.cards()]
-                    if not hide_dealer_cards
-                    else [self.dealer.hand.cards()[0].serialize()] + [{"rank": "Hidden", "suit": "Hidden"}]
-                ),
+                # "cards": (
+                #     self.dealer.hand.cards()
+                #     if not hide_dealer_cards
+                #     else [self.dealer.hand.cards()[0]] + [{"rank": "Hidden", "suit": "Hidden"}]
+                # ),
+                # "cards": self.dealer.hand.cards(),
                 "point": (
                     self.xidach_rule.calc_point(self.dealer.hand)
                     if not hide_dealer_cards
@@ -134,3 +153,8 @@ class Game:
             },
             "phase": self.phase,
         }
+    
+    def get_player_by_id(self,player_id):
+        for player in self.players:
+            if player.id == player_id:
+                return player
