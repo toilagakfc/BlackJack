@@ -5,6 +5,7 @@ bidict==0.23.1
 click==8.3.1
 colorama==0.4.6
 dnspython==2.8.0
+dotenv==0.9.9
 fastapi==0.135.1
 fastapi-socketio==0.0.10
 h11==0.16.0
@@ -14,10 +15,12 @@ motor==3.7.1
 packaging==26.0
 pluggy==1.6.0
 pydantic==2.12.5
+pydantic-settings==2.13.1
 pydantic_core==2.41.5
 Pygments==2.19.2
 pymongo==4.16.0
 pytest==9.0.2
+python-dotenv==1.2.2
 python-engineio==4.13.1
 python-socketio==5.16.1
 redis==7.3.0

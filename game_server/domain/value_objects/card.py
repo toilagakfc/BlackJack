@@ -11,3 +11,16 @@ class Card:
 
     def is_face(self) -> bool:
         return self.rank in ("J", "Q", "K")
+
+    def to_dict(self):
+        return {
+            "rank": self.rank,
+            "suit": self.suit
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            rank=data["rank"],
+            suit=data["suit"]
+        )
