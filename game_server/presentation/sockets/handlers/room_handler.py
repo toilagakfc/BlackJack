@@ -1,19 +1,21 @@
 # presentation/sockets/handler/room_handler.py
 from application.room_service import RoomService
 from presentation.sockets.server import sio
-
+import logging
+logger = logging.getLogger("Socket")
 @sio.event
 async def create_room(sid, data):
     try:
-        print(f"Request to create room by dealer SID: {sid}, name: {data['name']}")
-        room = RoomService.create_room(dealer_sid=sid, name=data['name'])
+        room = await RoomService.create_room(dealer_sid=sid, name=data['name'])
         await sio.enter_room(sid, room.id)
         await sio.emit(
             "room_created",
             {"room_id": room.id, "dealer_name": room.dealer.name},
             room=sid,
         )
+        logger.info(f"Room Created {room.id}, Dealer_sid: {room.dealer.id}, Dealer_name: {room.dealer.name}")
     except ValueError as e:
+        logger.error(e)
         await sio.emit(
             "error",
             {"code": str(e)},
@@ -26,7 +28,9 @@ async def join_room(sid, data):
     data = { "room_id": "AB12CD", "name": "Phong" }
     """
     try:
-        room = RoomService.join_room(
+        if not data["room_id"]:
+            raise ValueError("ROOM_NOT_FOUND")
+        room = await RoomService.join_room(
             room_id=data["room_id"],
             sid=sid,
             name=data["name"],
@@ -51,8 +55,10 @@ async def join_room(sid, data):
             },
             room=room.id,
         )
-
+        logger.info(f"Player join Room {room.id}, Player_sid: {sid}, Player_name: {room.players[sid].name}")
+        
     except ValueError as e:
+        logger.error(e)
         await sio.emit(
             "error",
             {"code": str(e)},
@@ -65,7 +71,9 @@ async def leave_room(sid, data):
     data = { "room_id": "AB12CD" }
     """
     try:
-        room = RoomService.leave_room(
+        if not data["room_id"]:
+            raise ValueError("ROOM_NOT_FOUND")
+        room = await RoomService.leave_room(
             room_id=data["room_id"],
             sid=sid,
         )
@@ -92,6 +100,7 @@ async def leave_room(sid, data):
             )
             
     except ValueError as e:
+        logger.error(e)
         await sio.emit(
             "error",
             {"code": str(e)},
@@ -104,7 +113,9 @@ async def kick_player(sid, data):
     data = { "room_id": "AB12CD", "target_sid": "XYZ789" }
     """
     try:
-        room = RoomService.kick_player(
+        if not data["room_id"]:
+            raise ValueError("ROOM_NOT_FOUND")
+        room = await RoomService.kick_player(
             room_id=data["room_id"],
             dealer_sid=sid,
             target_sid=data["target_sid"],
@@ -124,6 +135,7 @@ async def kick_player(sid, data):
         )
             
     except ValueError as e:
+        logger.error(e)
         await sio.emit(
             "error",
             {"code": str(e)},
@@ -136,7 +148,9 @@ async def player_ready(sid, data):
     data = { room_id }
     """
     try:
-        room = RoomService.ready(data["room_id"], sid)
+        if not data["room_id"]:
+            raise ValueError("ROOM_NOT_FOUND")
+        room = await RoomService.ready(data["room_id"], sid)
         if not room:
             raise ValueError("ROOM_NOT_FOUND")
 
@@ -145,8 +159,10 @@ async def player_ready(sid, data):
             {"sid": sid},
             room=room.id,
         )
+        logger.info(f"Room ID: {room.id} Player Ready: {sid}")
         
     except ValueError as e:
+        logger.error(e)
         await sio.emit(
             "error",
             {"code": str(e)},
@@ -154,12 +170,14 @@ async def player_ready(sid, data):
         )
 
 @sio.event
-async def unready(sid, data):
+async def player_unready(sid, data):
     """
     data = { room_id }
     """
     try:
-        room = RoomService.unready(data["room_id"], sid)
+        if not data["room_id"]:
+            raise ValueError("ROOM_NOT_FOUND")
+        room = await RoomService.unready(data["room_id"], sid)
         if not room:
             raise ValueError("ROOM_NOT_FOUND")
 
@@ -168,8 +186,9 @@ async def unready(sid, data):
             {"sid": sid},
             room=room.id,
         )
-        
+        logger.info(f"Room ID: {room.id} Player Unready: {sid}")
     except ValueError as e:
+        logger.error(e)
         await sio.emit(
             "error",
             {"code": str(e)},
@@ -178,8 +197,7 @@ async def unready(sid, data):
         
 @sio.event
 async def room_list(sid):
-    rooms = RoomService.room_list(sid)
-    print(f"Rooms: {rooms}")
+    rooms = await RoomService.room_list(sid)
     if not rooms:
         await sio.emit(
             "error",
@@ -193,3 +211,4 @@ async def room_list(sid):
         {"rooms": rooms},
         room=sid,
     )
+    logger.info(f"Rooms: {rooms}")
