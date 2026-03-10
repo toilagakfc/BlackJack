@@ -1,0 +1,15 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: blackjack_mongo
+    restart: never
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=123123
+      - MONGO_INITDB_DATABASE=blackjack
+    ports:
+      - "27017:27017"
+    volumes:
+      - type: volume
+        source: mongodb_data
+        target: /data/db

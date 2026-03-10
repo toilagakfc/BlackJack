@@ -11,7 +11,6 @@ player_sids = {}
 # -------- System EVENTS --------
 @client.event
 def connect():
-    print(client.get_sid())
     print("Connected")
 @client.event
 def pong():
@@ -52,6 +51,10 @@ def kicked(data):
 @client.event
 def player_left(data):
     print("Player has left:", data)
+
+@client.event
+def player_unready(data):
+    print("player unready",data)
     
 @client.event
 def room_closed(data):
@@ -88,7 +91,7 @@ def turn_state(data):
     
 # -------- RUN TEST --------
 username = input("Enter username name: ").strip()
-client.connect(SERVER)
+client.connect(SERVER,socketio_path='socket.io')
 while True:
     try:
         a = input(

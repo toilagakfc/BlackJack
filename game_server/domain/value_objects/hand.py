@@ -6,15 +6,30 @@ class Hand:
     def reset(self):
         self._cards.clear()
 
-    def add(self, card:Card):
+    def add(self, card: Card):
         self._cards.append(card)
 
     def cards(self):
-        return list(self._cards)  # tránh mutate ngoài
+        return list(self._cards)
 
     def count(self) -> int:
         return len(self._cards)
 
+    def to_dict(self):
+        return {
+            "cards": [card.to_dict() for card in self._cards]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        hand = cls()
+
+        cards = data.get("cards", [])
+
+        for card_data in cards:
+            hand.add(Card.from_dict(card_data))
+
+        return hand
+
     def __repr__(self):
         return f"Hand({self._cards})"
-    

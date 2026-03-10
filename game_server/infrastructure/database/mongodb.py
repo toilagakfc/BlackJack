@@ -1,17 +1,10 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+# infrastructure/database/mongo.py
+from infrastructure.database.mongo_manager import MongoManager
+from config.setting import settings
 
-MONGO_URL = "mongodb://localhost:27017"
+MONGO_URI = settings.mongo_uri
 
-client: AsyncIOMotorClient | None = None
-db = None
-
-async def connect_mongo():
-    global client, db
-    client = AsyncIOMotorClient(MONGO_URL)
-    db = client["game_server"]
-
-
-async def close_mongo():
-    global client
-    if client:
-        client.close()
+mongo = MongoManager(
+    uri=MONGO_URI,
+    db_name=settings.mongo_db
+)
