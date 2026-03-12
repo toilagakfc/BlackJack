@@ -50,15 +50,14 @@ class Room:
         self.game = Game(dealer=self.dealer, players=list(self.players.values()))
         self.phase = "playing"
         self.started_at = datetime.datetime.now()
-        print(f"Game started in room {self.id} at {self.started_at}")
-        self.game.initial_deal()
-        self.game.init_turn()
         self.updated_at = datetime.datetime.now()
+        return self.game
         
     def end_game(self):
         if not self.game:
             raise ValueError("Game not started")
         self.phase = "finished"
+        self.game=None
         self.ended_at = datetime.datetime.now()
         self.updated_at = datetime.datetime.now()
         
@@ -66,8 +65,7 @@ class Room:
         return {
             "id": self.id,
             "dealer": self.dealer.to_dict() if self.dealer else None,
-            "players": {pid: p.to_dict() for pid, p in self.players.items()},
-            "game": self.game.to_dict() if self.game else None,
+            "players": [p.to_dict() for p in self.players.values()],
             "phase": self.phase,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -78,22 +76,19 @@ class Room:
     def from_dict(cls, data: dict):
 
         dealer = Player.from_dict(data["dealer"]) if data.get("dealer") else None
-
         room = cls(
             room_id=data["id"],
             dealer=dealer
         )
 
-        players = data.get("players", {})
+        players = data.get("players", [])
         room.players = {
-            pid: Player.from_dict(pdata)
-            for pid, pdata in players.items()
+            Player.from_dict(pdata).id: Player.from_dict(pdata)
+            for pdata in players
         }
 
-        if data.get("game"):
-            room.game = Game.from_dict(data["game"])
-
         room.phase = data.get("phase", "waiting")
+        room.game =None
 
         def parse_time(v):
             return datetime.datetime.fromisoformat(v) if v else None

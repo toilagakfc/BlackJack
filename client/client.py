@@ -67,7 +67,15 @@ def game_started(data):
 
 @client.event
 def game_updated(data):
-    print("game_update:",data)    
+    print("game_update:",data)  
+    
+@client.event
+def game_finished(data):
+    print("game finished",data)
+    
+@client.event
+def player_turn(data):
+    print("player turn",data)  
 # -------- DEALER --------
 @client.event
 def room_created(data):
@@ -80,9 +88,6 @@ def room_created(data):
 def compare_result(data):
     print("[DEALER] compare_result:", data)
 
-@client.event
-def dealer_public_state(data):
-    print("[DEALER] dealer_public_state:", data)
 
 @client.event
 def turn_state(data):
