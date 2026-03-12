@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     mongo_password: str = "123123"
 
     # ---------- REDIS ----------
+    GAME_STORAGE: str = "mongo"
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_db: int = 0
