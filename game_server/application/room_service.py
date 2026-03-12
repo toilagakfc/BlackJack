@@ -20,7 +20,7 @@ class RoomService:
     @staticmethod
     async def create_room(dealer_sid: str, name: str):
         room_id = uuid.uuid4().hex[:6].upper()
-        dealer = Dealer(sid=dealer_sid, name=name)
+        dealer = Dealer(player_id=dealer_sid, name=name)
         logger.info(f"Creating room with ID: {room_id} for dealer SID: {dealer_sid}")
         if await RoomService.get_room_by_dealer_sid(dealer_sid) is not None:
             logger.error(f"Dealer {dealer.name} already has a room, cannot create another")
@@ -36,7 +36,6 @@ class RoomService:
     @staticmethod
     async def join_room(room_id: str, sid: str, name: str):
         room = await room_repo.get(room_id)
-        print(room)
         if not room:
             logger.error("ROOM_NOT_FOUND")
             raise ValueError("ROOM_NOT_FOUND")
@@ -51,21 +50,43 @@ class RoomService:
         await room_repo.save(room)
         return room
     
+    # @staticmethod
+    # async def leave_room(room_id: str, sid: str):
+    #     room = await room_repo.get(room_id)
+    #     if not room:
+    #         raise ValueError("ROOM_NOT_FOUND")
+    #     if sid not in room.players.keys() and sid != room.dealer.id:
+    #         raise ValueError("PLAYER_NOT_IN_ROOM")
+    #     if room.phase !='waiting':
+    #         raise ValueError("Can not leave while playing")
+    #     if sid == room.dealer.id:
+    #         await room_repo.remove(room_id)
+    #         room.dealer = None
+    #     if sid in room.players.keys():
+    #         room.remove_player(sid)
+    #         await room_repo.save(room)
+    #     return room
     @staticmethod
     async def leave_room(room_id: str, sid: str):
         room = await room_repo.get(room_id)
         if not room:
             raise ValueError("ROOM_NOT_FOUND")
-        if sid not in room.players.keys() and sid != room.dealer.id:
-            raise ValueError("PLAYER_NOT_IN_ROOM")
+        if room.phase != "waiting":
+            raise ValueError("CANNOT_LEAVE_WHILE_PLAYING")
+
         if sid == room.dealer.id:
+            # Dealer rời → xóa cả phòng
             await room_repo.remove(room_id)
-            room.dealer = None
-        if sid in room.players.keys():
+            return None                         # phòng không còn tồn tại
+
+        elif sid in room.players:
             room.remove_player(sid)
             await room_repo.save(room)
-        return room
-    
+            return room
+
+        else:
+            raise ValueError("PLAYER_NOT_IN_ROOM")
+        
     @staticmethod
     async def kick_player(room_id: str, dealer_sid: str, target_sid: str):
         room = await room_repo.get(room_id)
@@ -77,6 +98,8 @@ class RoomService:
             raise ValueError("PLAYER_NOT_IN_ROOM")
         if dealer_sid != room.dealer.id:
             raise ValueError("ONLY_DEALER_CAN_KICK_PLAYERS")
+        if room.phase !='waiting':
+            raise ValueError("Can not kick while playing")
         room.remove_player(target_sid)
         await room_repo.save(room)
         return room    

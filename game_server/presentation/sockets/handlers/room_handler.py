@@ -3,14 +3,24 @@ from application.room_service import RoomService
 from presentation.sockets.server import sio
 import logging
 logger = logging.getLogger("Socket")
+
+def _require(data: dict, *keys: str):
+    for key in keys:
+        if not data.get(key):
+            raise ValueError(f"MISSING_FIELD_{key.upper()}")
+
 @sio.event
 async def create_room(sid, data):
     try:
+        _require(data, "name")
         room = await RoomService.create_room(dealer_sid=sid, name=data['name'])
         await sio.enter_room(sid, room.id)
         await sio.emit(
             "room_created",
-            {"room_id": room.id, "dealer_name": room.dealer.name},
+            {
+                "room_id": room.id, 
+                "dealer_name": room.dealer.name
+            },
             room=sid,
         )
         logger.info(f"Room Created {room.id}, Dealer_sid: {room.dealer.id}, Dealer_name: {room.dealer.name}")
@@ -28,21 +38,20 @@ async def join_room(sid, data):
     data = { "room_id": "AB12CD", "name": "Phong" }
     """
     try:
-        if not data["room_id"]:
-            raise ValueError("ROOM_NOT_FOUND")
+        _require(data, "room_id", "name")
         room = await RoomService.join_room(
             room_id=data["room_id"],
             sid=sid,
             name=data["name"],
         )
-        if not room:
-            raise ValueError("ROOM_NOT_FOUND")
+
         await sio.enter_room(sid, room.id)
         await sio.emit(
             "joined_room",
             {
                 "room_id": room.id,
-                "players": [player.name for player in room.players.values()],
+                "dealer":{"id": room.dealer.id, "name": room.dealer.name},
+                "players": {pid: p.name for pid, p in room.players.items()},
             },
             to=sid,
         )
@@ -51,7 +60,7 @@ async def join_room(sid, data):
             "player_joined",
             {
                 "room_id": room.id,
-                "players": {room.dealer.id: room.dealer.name, **{player.id: player.name for player in room.players.values()}}
+                "players": room.players[sid].name
             },
             room=room.id,
         )
@@ -71,34 +80,32 @@ async def leave_room(sid, data):
     data = { "room_id": "AB12CD" }
     """
     try:
-        if not data["room_id"]:
-            raise ValueError("ROOM_NOT_FOUND")
-        room = await RoomService.leave_room(
-            room_id=data["room_id"],
-            sid=sid,
-        )
-        if room.dealer is None:
+        _require(data, "room_id")
+        room_id = data["room_id"]
+        room = await RoomService.leave_room(room_id= room_id, sid= sid,)
+        if room is None:
             # Broadcast to Players in room
             await sio.emit(
                 "room_closed",
-                {"room_id": data["room_id"]},
+                {
+                    "room_id": room_id
+                },
                 room=data["room_id"],
             )
             await sio.close_room(data["room_id"])
+        else:
+            await sio.emit(
+                "player_left",
+                {"sid": sid},
+                room=room.id,
+            )
         await sio.leave_room(sid, data["room_id"])
         await sio.emit(
             "left_room",
             {"room_id": data["room_id"]},
             to=sid,
         )
-
-        if room:  # room is None if dealer left and room was deleted
-            await sio.emit(
-                "player_left",
-                {"sid": sid},
-                room=room.id,
-            )
-            
+        logger.info(f"Player {sid} left room {room_id}")    
     except ValueError as e:
         logger.error(e)
         await sio.emit(
@@ -113,24 +120,27 @@ async def kick_player(sid, data):
     data = { "room_id": "AB12CD", "target_sid": "XYZ789" }
     """
     try:
-        if not data["room_id"]:
-            raise ValueError("ROOM_NOT_FOUND")
+        _require(data, "room_id", "target_sid")
+        room_id = data["room_id"]
+        target_sid = data["target_sid"]
+        
         room = await RoomService.kick_player(
-            room_id=data["room_id"],
+            room_id=room_id,
             dealer_sid=sid,
-            target_sid=data["target_sid"],
+            target_sid=target_sid,
         )
-        await sio.leave_room(data["target_sid"], data["room_id"])
+        await sio.leave_room(target_sid, room_id)
         await sio.emit(
             "kicked",
-            {"room_id": room.id},
-            to=data["target_sid"],
+            {
+                "room_id": room.id
+            },
+            to=target_sid,
         )
 
-        
         await sio.emit(
             "player_kicked",
-            {"sid": data["target_sid"]},
+            {"sid": target_sid},
             room=room.id
         )
             

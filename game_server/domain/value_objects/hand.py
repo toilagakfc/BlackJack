@@ -1,3 +1,4 @@
+# game_server/domain/value_object/hand.py
 from domain.value_objects.card import Card
 class Hand:
     def __init__(self):
@@ -31,5 +32,9 @@ class Hand:
 
         return hand
 
+    # ── Dunder ────────────────────────────────────────────────────────────
     def __repr__(self):
         return f"Hand({self._cards})"
+
+    def __len__(self) -> int:
+        return self.count()
