@@ -1,15 +1,42 @@
+version: "3.10"
+
 services:
-  mongodb:
+
+
+  mongo:
     image: mongo:latest
-    container_name: blackjack_mongo
-    restart: never
+    container_name: mongo
+    restart: always
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=123123
-      - MONGO_INITDB_DATABASE=blackjack
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: mongo123
+      MONGO_INITDB_DATABASE: Blackjack
     ports:
       - "27017:27017"
     volumes:
-      - type: volume
-        source: mongodb_data
-        target: /data/db
+      - mongo_data:/data/db
+  server:
+    build: .
+    container_name: server
+    working_dir: /app/game_server
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - mongo
+    environment:
+      mongo_host : "mongo"
+      mongo_port : 27017
+      mongo_db : "blackjack"
+      mongo_user : "admin"
+      mongo_password : "mongo123"
+      room_storage : "mongo"
+      game_storage : "mongo"
+      # MONGO_URL: mongodb://admin:mongo123@localhost:27017/?authSource=admin
+
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+volumes:
+  mongo_data:
+
+

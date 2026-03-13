@@ -113,7 +113,7 @@ class RoomService:
 
     @staticmethod
     async def get_room(room_id: str):
-        return room_repo.get(room_id)
+        return await room_repo.get(room_id)
     
     @staticmethod
     async def ready(room_id: str, sid: str):
