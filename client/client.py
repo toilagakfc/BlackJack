@@ -21,7 +21,8 @@ def error(data):
 @client.event
 def disconnect():
     print("Disconnected")
-# --------Room EVENTS --------
+
+# -------- Room EVENTS --------
 @client.event
 def room_list(data):
     print("Room List:", data)
@@ -54,29 +55,71 @@ def player_left(data):
 
 @client.event
 def player_unready(data):
-    print("player unready",data)
+    print("player unready", data)
     
 @client.event
 def room_closed(data):
     print("Dealer has left", data)
 
-# -------- Game Event -------
+# -------- Betting EVENTS --------
+@client.on("bet:opened")
+def on_bet_opened(data):
+    """Server mở phase đặt cược."""
+    print(
+        f"[BET] Betting opened! "
+        f"Min={data['min_bet']} | Max={data['max_bet']} | "
+        f"Timeout={data['timeout_seconds']}s | Deadline={data.get('deadline')}"
+    )
+
+@client.on("bet:placed")
+def on_bet_placed(data):
+    """Một player vừa đặt cược thành công."""
+    print(
+        f"[BET] Player {data['player_id']} placed {data['amount']}. "
+        f"Pot={data['pot']}"
+    )
+
+@client.on("bet:balance")
+def on_bet_balance(data):
+    """Response riêng cho lệnh check_balance."""
+    print(f"[BET] Your balance: {data['balance']}")
+
+@client.on("bet:timeout")
+def on_bet_timeout(data):
+    """Hết giờ đặt cược — một số player bị fold."""
+    folded = data.get("folded", [])
+    reason = data.get("reason", "timeout")
+    if folded:
+        print(f"[BET] Timeout ({reason})! Folded players: {folded}")
+    else:
+        print(f"[BET] Timeout — no players folded.")
+
+@client.on("bet:locked")
+def on_bet_locked(data):
+    """Betting đã bị khóa, chuẩn bị deal bài."""
+    print(
+        f"[BET] Betting LOCKED. "
+        f"Pot={data['pot']} | Bets={data['bets']}"
+    )
+
+# -------- Game EVENTS --------
 @client.event
 def game_started(data):
-    print("game start",data)
+    print("game start", data)
 
 @client.event
 def game_updated(data):
-    print("game_update:",data)  
+    print("game_update:", data)  
     
 @client.event
 def game_finished(data):
-    print("game finished",data)
+    print("game finished", data)
     
 @client.event
 def player_turn(data):
-    print("player turn",data)  
-# -------- DEALER --------
+    print("player turn", data)  
+
+# -------- Dealer EVENTS --------
 @client.event
 def room_created(data):
     global ROOM_ID
@@ -88,7 +131,6 @@ def room_created(data):
 def compare_result(data):
     print("[DEALER] compare_result:", data)
 
-
 @client.event
 def turn_state(data):
     print("[DEALER] turn_state:", data)
@@ -96,101 +138,126 @@ def turn_state(data):
     
 # -------- RUN TEST --------
 username = input("Enter username name: ").strip()
-client.connect(SERVER,socketio_path='socket.io')
+client.connect(SERVER, socketio_path='socket.io')
+
+HELP = """
+Commands:
+  [Enter]        create_room (dealer)
+  joinroom <id>  join a room
+  ready          set ready
+  unready        set unready
+  leave          leave room
+  kick           kick a player (dealer)
+  rooms_list     list all rooms
+
+  bet_start      open betting phase (dealer)
+  bet <amount>   place a bet
+  balance        check your balance
+  bet_lock       lock betting early (dealer)
+
+  start          start game (dealer, legacy — skips betting)
+  hit            player hit
+  stand          player stand
+  dhit           dealer hit
+  c              dealer compare one player
+  exit           quit
+"""
+print(HELP)
+
 while True:
     try:
-        a = input(
-            "[Enter]=create_room | joinroom | start | public | state | leave | c | hit | compare_all | exit > "
-        ).strip()
+        a = input("> ").strip()
 
         if a == "exit":
             break
 
-        elif a == "leave":
-            print(f"{username} send request leave room , Room_ID = {ROOM_ID}")
-            client.emit("leave_room", {"room_id": ROOM_ID})
-            ROOM_ID = None
-        elif a == "public":
-            client.emit("dealer_public_state", {"room_id": ROOM_ID})
-
-        elif a == "hit":
-            client.emit(
-                "player_action",
-                {
-                    "room_id": ROOM_ID,
-                    "action": "hit",
-                },
-            )
-        elif a == "stand":
-            client.emit(
-                "player_action",
-                {
-                    "room_id": ROOM_ID,
-                    "action": "stand",
-                },
-            )
-        
-        elif a == "rooms_list":
-            client.emit("room_list")
-            
-        # ---- DEALER COMMANDS ----
+        # ---- System ----
         elif a == "":
             print(f"Dealer {username} create_room")
             client.emit("create_room", {"name": username})
-        elif a == "start":
-            print(f"Dealer {username} send start game request , Room_ID = {ROOM_ID}")
-            client.emit("start_game", {"room_id": ROOM_ID})
-            
+
+        # ---- Room ----
         elif a.startswith("joinroom"):
             parts = a.split(" ")
             if len(parts) != 2:
-                print("Sai cú pháp: joinroom <room_id>")
+                print("Usage: joinroom <room_id>")
                 continue
-            print(f"Client {username} send join room request , Room_ID = {parts[1]}")
             client.emit("join_room", {"room_id": parts[1], "name": username})
-            
-        elif a == "kick":
-            if not ROOM_ID:
-                print("Chưa join room")
-                continue
-            target_sid = input("Nhập <player_sid>: ").strip()
-            print(f"Dealer {username} kick player {target_sid} in room: {ROOM_ID}")
-            client.emit("kick_player", {"room_id": ROOM_ID, "target_sid": target_sid})
-        
-        elif a == "dhit":
-            client.emit(
-                "dealer_action",
-                {
-                    "room_id": ROOM_ID,
-                    "action": "hit",
-                },
-            )    
-        elif a == "c":
-            target_sid = input("Nhập <player_id>: ").strip()
 
-            if not target_sid:
-                print("Player không tồn tại")
-                continue
-
-            client.emit(
-                "dealer_action",
-                {
-                    "room_id": ROOM_ID,
-                    "action": "compare",
-                    "target_sid": target_sid,
-                },
-            )
-        # ----- PLAYER COMMANDS -----
         elif a == "ready":
-            print(f"Client {username} send ready request , Room_ID = {ROOM_ID}")
             client.emit("player_ready", {"room_id": ROOM_ID})
+
         elif a == "unready":
-            print(f"Client {username} send unready request , Room_ID = {ROOM_ID}")
             client.emit("player_unready", {"room_id": ROOM_ID})
-            
+
+        elif a == "leave":
+            client.emit("leave_room", {"room_id": ROOM_ID})
+            ROOM_ID = None
+
+        elif a == "kick":
+            target_sid = input("Enter player_sid to kick: ").strip()
+            client.emit("kick_player", {"room_id": ROOM_ID, "target_sid": target_sid})
+
+        elif a == "rooms_list":
+            client.emit("room_list")
+
+        # ---- Betting ----
+        elif a == "bet_start":
+            # Dealer mở phase đặt cược
+            print(f"[BET] Opening betting phase for room {ROOM_ID}...")
+            client.emit("bet_start", {"room_id": ROOM_ID})
+
+        elif a.startswith("bet "):
+            # Player đặt cược: "bet 100"
+            parts = a.split(" ")
+            if len(parts) != 2 or not parts[1].isdigit():
+                print("Usage: bet <amount>  (e.g. bet 100)")
+                continue
+            amount = int(parts[1])
+            print(f"[BET] Placing bet of {amount}...")
+            client.emit("bet_place", {"room_id": ROOM_ID, "amount": amount})
+
+        elif a == "balance":
+            # Check balance trong betting phase
+            client.emit("bet_check_balance", {"room_id": ROOM_ID})
+
+        elif a == "bet_lock":
+            # Dealer khoá betting sớm
+            print(f"[BET] Locking betting for room {ROOM_ID}...")
+            client.emit("bet_lock", {"room_id": ROOM_ID})
+
+        # ---- Game (legacy / post-bet) ----
+        elif a == "start":
+            print(f"Dealer {username} start game, Room={ROOM_ID}")
+            client.emit("start_game", {"room_id": ROOM_ID})
+
+        elif a == "hit":
+            client.emit("player_action", {"room_id": ROOM_ID, "action": "hit"})
+
+        elif a == "stand":
+            client.emit("player_action", {"room_id": ROOM_ID, "action": "stand"})
+
+        elif a == "dhit":
+            client.emit("dealer_action", {"room_id": ROOM_ID, "action": "hit"})
+
+        elif a == "c":
+            target_sid = input("Enter player_id to compare: ").strip()
+            if not target_sid:
+                print("No player_id entered.")
+                continue
+            client.emit(
+                "dealer_action",
+                {"room_id": ROOM_ID, "action": "compare", "target_sid": target_sid},
+            )
+
+        elif a == "public":
+            client.emit("dealer_public_state", {"room_id": ROOM_ID})
+
+        elif a == "help":
+            print(HELP)
 
         else:
-            print("Command không hợp lệ")
+            print("Unknown command. Type 'help' to see all commands.")
 
     except KeyboardInterrupt:
         break

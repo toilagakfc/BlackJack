@@ -22,3 +22,4 @@ def get_game_repository():
 
 def get_player_repository():
     return MongoPlayerRepository(mongo)
+

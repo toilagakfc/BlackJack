@@ -2,6 +2,8 @@
 from datetime import datetime
 from domain.entities.game import Game
 from domain.state.game_state import GameState
+
+
 class GameService:
 
     def __init__(self, room_repo, game_repo, player_repo):
@@ -35,8 +37,9 @@ class GameService:
     async def start_game(self, room_id: str, sid: str) -> GameState:
         room = await self._get_room(room_id)
 
-        if room.phase == "playing":
-            raise ValueError("ROOM_IS_PLAYING")
+        # Accept both betting_locked (after betting phase) and waiting (legacy / direct start)
+        if room.phase not in ("betting_locked", "waiting"):
+            raise ValueError("ROOM_NOT_READY_TO_START")
         if sid != room.dealer.id:
             raise ValueError("ONLY_DEALER_CAN_START")
         if not room.has_players():
@@ -44,7 +47,7 @@ class GameService:
         if not room.all_ready():
             raise ValueError("NOT_ALL_PLAYERS_READY")
 
-        # Load balance mới nhất từ DB cho tất cả player
+        # Load fresh balances from DB
         player_ids = list(room.players.keys())
         players_from_db = await self.player_repo.get_many(player_ids)
         for pid, player in room.players.items():
@@ -54,6 +57,12 @@ class GameService:
         game = room.start_game()
         game.initial_deal()
         game.init_turn()
+
+        # Attach pot from betting state so compare can award it
+        if room.betting_state:
+            game.pot = room.betting_state.pot
+        else:
+            game.pot = 0
 
         await self.room_repo.save(room)
         await self.game_repo.save(game, room_id)
@@ -74,39 +83,17 @@ class GameService:
         await self.game_repo.delete(room_id)
         return self._build_state(room_id, game)
 
-    # ── Bet ───────────────────────────────────────────────────────────────
-
-    async def place_bet(self, room_id: str, player_id: str, amount: int) -> GameState:
-        game = await self._get_game(room_id)
-        player = game._get_player_or_raise(player_id)
-
-        if game.phase != "PLAYER_TURN":
-            raise ValueError("NOT_PLAYER_PHASE")
-        if amount <= 0:
-            raise ValueError("INVALID_BET_AMOUNT")
-        if amount > player.balance:
-            raise ValueError("INSUFFICIENT_BALANCE")
-
-        player.bet = amount
-
-        await self.game_repo.save(game, room_id)
-        return self._build_state(room_id, game)
-
     # ── Player actions ────────────────────────────────────────────────────
 
     async def player_hit(self, room_id: str, player_id: str) -> GameState:
         game = await self._get_game(room_id)
-
         game.player_hit(player_id)
-
         await self.game_repo.save(game, room_id)
         return self._build_state(room_id, game)
 
     async def player_stand(self, room_id: str, player_id: str) -> GameState:
         game = await self._get_game(room_id)
-
         game.player_stand(player_id)
-
         await self.game_repo.save(game, room_id)
         return self._build_state(room_id, game)
 
@@ -114,9 +101,7 @@ class GameService:
 
     async def dealer_hit(self, room_id: str, dealer_id: str) -> GameState:
         game = await self._get_game(room_id)
-
         game.dealer_hit(dealer_id)
-
         await self.game_repo.save(game, room_id)
         return self._build_state(room_id, game)
 
@@ -125,20 +110,32 @@ class GameService:
     ) -> tuple[GameState, dict]:
         room = await self._get_room(room_id)
         game = await self._get_game(room_id)
-        result = game.dealer_compare(dealer_id, player_id)
+        result_tuple = game.dealer_compare(dealer_id, player_id)
 
-        # Update balance
+        # result_tuple is (outcome, reason, multiplier) from compare()
+        outcome = result_tuple[0].lower()  # "win" | "lose" | "draw"
+
         player = game.get_player_by_id(player_id)
-        delta = self._calc_delta(player.bet, result)
-        # new_balance = await self.player_repo.update_balance(player_id, delta)
-        new_balance = 0
+        delta = self._calc_delta(player.bet, outcome)
+
+        # Update balance in DB
+        try:
+            new_balance = await self.player_repo.update_balance(player_id, delta)
+        except Exception:
+            new_balance = player.balance + delta
+
         player.balance = new_balance
-        if game.phase == 'FINISHED':
-            room.phase = 'waiting'
+
+        if game.phase == "FINISHED":
+            # for player in room.players:
+            #     player.reset()
+            room.phase = "waiting"
             await self.room_repo.save(room)
+
         await self.game_repo.save(game, room_id)
         return self._build_state(room_id, game), {
-            "result": result,
+            "result": outcome,
             "delta": delta,
             "balance": new_balance,
+            "pot": getattr(game, "pot", 0),
         }

@@ -68,6 +68,7 @@ class MongoGameStateRepository(BaseGameStateRepository):
             p.hand = Hand.from_dict(pdata.get("hand", {"cards": []}))
             p.standing = pdata.get("standing", False)
             p.busted = pdata.get("busted", False)
+            p.folded = pdata.get("folded", False)
             players.append(p)
 
         # Game
@@ -75,6 +76,7 @@ class MongoGameStateRepository(BaseGameStateRepository):
         game.deck = Deck.from_drawn(doc.get("deck_drawn", []))
         game.turn_index = doc.get("turn_index", 0)
         game.phase = doc.get("phase", "PLAYER_TURN")
+        game.pot = doc.get("pot", 0)
         game.compared_players = {
             p for p in players
             if p.id in doc.get("compared_players", {})
