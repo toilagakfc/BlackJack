@@ -151,6 +151,7 @@ class Game:
         self.dealer.reset()
         self.turn_index = 0
         self.phase = "PLAYER_TURN"
+        self.pot = 0
         self.compared_players.clear()
         self.started_at = datetime.now()
         self.updated_at = None
@@ -165,6 +166,7 @@ class Game:
             "deck_drawn": self.deck.drawn_indices, 
             "turn_index": self.turn_index,
             "phase": self.phase,
+            "pot": self.pot,
             "compared_players": {p.id: p.to_dict() for p in self.compared_players},
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,

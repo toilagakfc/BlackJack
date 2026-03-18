@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     mongo_port: int = 27017
     mongo_db: str = "blackjack"
     mongo_user: str = "admin"
-    mongo_password: str = "123123"
+    mongo_password: str = "mongo123"
 
     # ---------- REDIS ----------
     GAME_STORAGE: str = "mongo"

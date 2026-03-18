@@ -34,7 +34,6 @@ game_service = GameService(
     player_repo=get_player_repository()
 )
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 async def _emit_game_state(state, room_id: str):
@@ -115,33 +114,6 @@ async def end_game(sid, data):
         await _emit_error(sid, str(e))
 
 
-# ── Bet ───────────────────────────────────────────────────────────────────
-
-@sio.event
-async def place_bet(sid, data):
-    """
-    data = { room_id, amount }
-    """
-    try:
-        _require(data, "room_id", "amount")
-
-        state = await game_service.place_bet(
-            room_id=data["room_id"],
-            player_id=sid,
-            amount=int(data["amount"]),
-        )
-
-        # Chỉ emit lại cho player đặt cược
-        await sio.emit(
-            "bet_placed",
-            {"player_id": sid, "amount": data["amount"]},
-            room=data["room_id"],
-        )
-
-    except (ValueError, TypeError) as e:
-        await _emit_error(sid, str(e))
-
-
 # ── Player actions ────────────────────────────────────────────────────────
 
 @sio.event
@@ -210,8 +182,8 @@ async def dealer_action(sid, data):
             )
             await _emit_game_state(state,room_id)
             await _emit_turn(state, room_id)
-            if state.phase == 'FINISHED':
-                await sio.emit('game_finished',{},room=room_id)
+            # if state.phase == 'FINISHED':
+                # await sio.emit('game_finished',{},room=room_id)
 
         else:
             raise ValueError("INVALID_ACTION")
