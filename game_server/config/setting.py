@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     environment: str = "dev"
 
     # ---------- MONGO ----------
+    # Set MONGO_URI_OVERRIDE in .env to use Atlas (or any full URI).
+    # Leave blank to fall back to the host/port/user/password fields (local).
     ROOM_STORAGE: str = "memory"
+    mongo_uri_override: str = ""
     mongo_host: str = "localhost"
     mongo_port: int = 27017
     mongo_db: str = "blackjack"
@@ -35,6 +38,9 @@ class Settings(BaseSettings):
 
     @property
     def mongo_uri(self) -> str:
+        # Atlas (or any full URI) supplied via env takes priority
+        if self.mongo_uri_override:
+            return self.mongo_uri_override
         return (
             f"mongodb://{self.mongo_user}:{self.mongo_password}"
             f"@{self.mongo_host}:{self.mongo_port}/?authSource=admin"
