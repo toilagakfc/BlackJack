@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, field_validator
 
-from application.services.auth_service import AuthService
+from application.auth_service import AuthService
 from domain.repositories.player_account_repo import PlayerAccountRepository
 from infrastructure.repositories.player_account_repo_mongo import MongoPlayerAccountRepository
 from infrastructure.database.mongodb import mongo

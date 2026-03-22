@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from infrastructure.database.mongodb import mongo
 # from infrastructure.database.redis import connect_redis, close_redis
 from infrastructure.repositories.player_account_repo_mongo import MongoPlayerAccountRepository
-from application.services.auth_service import AuthService
+from application.auth_service import AuthService
 from presentation.sockets.server import sio,socket_app
 from presentation.middleware.socket_auth import register_auth_middleware
 from presentation.api.auth_router import router as auth_router
