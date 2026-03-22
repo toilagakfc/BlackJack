@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+import secrets
 
 class Settings(BaseSettings):
 
@@ -33,7 +33,20 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False
     )
-
+    # ---------- JWT ----------
+    # Set JWT_SECRET in your .env file — never commit a real secret.
+    # A random fallback is generated for dev so the server starts without config,
+    # but note this changes every restart (all tokens invalidated on restart).
+    jwt_secret: str = secrets.token_hex(32)
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24   # 24 hours
+ 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
+ 
     # ---------- computed fields ----------
 
     @property
