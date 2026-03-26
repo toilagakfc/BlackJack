@@ -13,7 +13,7 @@ from presentation.sockets.server import sio,socket_app
 from presentation.middleware.socket_auth import register_auth_middleware
 from presentation.api.auth_router import router as auth_router
 from presentation.sockets.handlers import *
-
+from fastapi.middleware.cors import CORSMiddleware
 setup_logging()
 #import db
 @asynccontextmanager
@@ -25,6 +25,14 @@ async def lifespan(app: FastAPI):
     await mongo.close()
     # await close_redis
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ── REST API ──────────────────────────────────────────────────────────────
 app.include_router(auth_router)
 # ── Socket.IO ─────────────────────────────────────────────────────────────

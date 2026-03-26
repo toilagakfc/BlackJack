@@ -22,7 +22,7 @@ class PlayerAccount:
     id: str                  # MongoDB _id (str ObjectId hex or uuid)
     username: str
     password_hash: str
-    balance: int = 1000      # starting balance for new accounts
+    balance: int = 0      # starting balance for new accounts
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 

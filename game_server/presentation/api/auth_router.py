@@ -153,20 +153,20 @@ async def get_player(
     return {"player": account.to_public()}
 
 
-@router.put("/players/{player_id}", response_model=PlayerResponse)
-async def update_player(
-    player_id: str,
-    body: UpdateProfileRequest,
-    current_id: str = Depends(_current_player_id),
-    repo: PlayerAccountRepository = Depends(_get_account_repo),
-):
-    if current_id != player_id:
-        raise HTTPException(status_code=403, detail="FORBIDDEN")
-    try:
-        account = await repo.update_profile(player_id, username=body.username)
-    except ValueError as exc:
-        _raise_400(str(exc))
-    return {"player": account.to_public()}
+# @router.put("/players/{player_id}", response_model=PlayerResponse)
+# async def update_player(
+#     player_id: str,
+#     body: UpdateProfileRequest,
+#     current_id: str = Depends(_current_player_id),
+#     repo: PlayerAccountRepository = Depends(_get_account_repo),
+# ):
+#     if current_id != player_id:
+#         raise HTTPException(status_code=403, detail="FORBIDDEN")
+#     try:
+#         account = await repo.update_profile(player_id, username=body.username)
+#     except ValueError as exc:
+#         _raise_400(str(exc))
+#     return {"player": account.to_public()}
 
 
 @router.get("/players/{player_id}/balance")
